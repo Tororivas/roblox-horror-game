@@ -65,6 +65,13 @@ passed, failed = footstepSoundTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run SanityManager tests (US-010)
+print("\n--- SanityManager Tests (US-010) ---")
+local sanityManagerTest = require("./tests/unit/SanityManager.spec")
+passed, failed = sanityManagerTest()
+totalPassed += passed
+totalFailed += failed
+
 -- Run UI Component Tests
 print("\n--- Running GameUI Controller Tests ---")
 local gameUITest = require("./tests/unit/GameUI.spec")
