@@ -37,6 +37,15 @@ passed, failed = playerControllerSprintTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run InteractionDetector tests (US-006)
+print("\n--- InteractionDetector Tests (US-006) ---")
+local interactionDetectorTest = require("./tests/unit/InteractionDetector.spec")
+passed, failed = interactionDetectorTest()
+totalPassed += passed
+totalFailed += failed
+
+print(string.format("\nFinal: %d passed, %d failed", totalPassed, totalFailed))
+
 if totalFailed > 0 then
     error(string.format("Tests failed: %d", totalFailed))
 end
