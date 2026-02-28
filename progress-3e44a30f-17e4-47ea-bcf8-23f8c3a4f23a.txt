@@ -15,6 +15,7 @@ Started: 2026-02-27
 - **Type annotation:** Use `field = value :: Type` instead of `field: Type = value` in table literals
 - **Highlight instances:** Use `Highlight` Roblox instances with FillColor and OutlineColor properties
 - **Cooldown tracking:** Use negative initial time values to avoid cooldown on first interaction
+- **Sound instances:** Use Sound instances with Name, SoundId, Volume, PlaybackSpeed; track PlayCount for testing
 
 ---
 
@@ -53,5 +54,43 @@ Started: 2026-02-27
 - Mock module dependencies with direct property assignment, then pass to Initialize
 - Initialize should preserve existing dependencies if passed nil (for testing)
 - RemoteEvent and BindableEvent firing should both occur on successful interaction
+
+---
+
+## 2026-02-28 - US-009: Footstep Sound System
+- Created ReplicatedStorage/Modules/FootstepSoundSystem.lua with footstep sound management:
+  - Initialize(parent) creates Sound instances for left/right footsteps
+  - Update(speed, isSprinting?) triggers footsteps based on movement threshold (>0.1)
+  - OnRunning(speed) wrapper for Humanoid.Running event integration
+  - Cooldown system: 0.35 seconds between footstep sounds
+  - Automatic left/right foot alternation (_isLeftFoot tracking)
+  - Pitch adjustment: 1.0x for walk, 1.1x for sprint
+  - Mock sound support with Play/Stop/GetPlayCount methods
+  - Cleanup destroys sound instances and resets all state
+- Created tests/unit/FootstepSoundSystem.spec.lua with 24 comprehensive test cases:
+  - Module initialization and state management
+  - Sound creation and properties
+  - Movement threshold validation (0.1)
+  - Cooldown mechanics (0.35s enforced, released after)
+  - Left/right foot alternation
+  - Sprint pitch (1.1x) vs walk pitch (1.0x)
+  - Movement stop detection (sounds stop when speed <= threshold)
+  - Cleanup functionality
+  - Time tracking and cooldown calculation
+- Typecheck passes on FootstepSoundSystem.lua (luau-analyze)
+- All 188 tests pass (existing 164 + 24 new FootstepSoundSystem tests)
+
+**Files Changed:**
+- ReplicatedStorage/Modules/FootstepSoundSystem.lua (new)
+- tests/unit/FootstepSoundSystem.spec.lua (new)
+- test.lua (modified - added FootstepSoundSystem tests)
+
+**Learnings:**
+- Sound instances use Name, SoundId, Volume, PlaybackSpeed properties
+- Mock sounds need PlayCount tracking and LastPlayTime for test assertions
+- Cooldown pattern: use negative initial time (-1000) for "never played" state
+- Threshold comparisons: speed > MOVE_THRESHOLD for movement detection
+- Pitch multipliers: 1.1x creates noticeable but not jarring pitch increase
+- Test modules need inline mock time to properly test cooldown mechanics
 
 ---
