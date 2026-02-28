@@ -58,6 +58,20 @@ passed, failed = interactionControllerTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run FootstepSoundSystem tests (US-009)
+print("\n--- FootstepSoundSystem Tests (US-009) ---")
+local footstepSoundTest = require("./tests/unit/FootstepSoundSystem.spec")
+passed, failed = footstepSoundTest()
+totalPassed += passed
+totalFailed += failed
+
+-- Run UI Component Tests
+print("\n--- Running GameUI Controller Tests ---")
+local gameUITest = require("./tests/unit/GameUI.spec")
+passed, failed = gameUITest()
+totalPassed += passed
+totalFailed += failed
+
 print(string.format("\nFinal: %d passed, %d failed", totalPassed, totalFailed))
 
 if totalFailed > 0 then
