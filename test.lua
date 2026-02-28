@@ -30,7 +30,12 @@ passed, failed = playerControllerMovementTest()
 totalPassed += passed
 totalFailed += failed
 
-print(string.format("\nFinal: %d passed, %d failed", totalPassed, totalFailed))
+-- Run PlayerController sprint tests (US-005)
+print("\n--- PlayerController Sprint Tests (US-005) ---")
+local playerControllerSprintTest = require("./tests/unit/PlayerController_Sprint.spec")
+passed, failed = playerControllerSprintTest()
+totalPassed += passed
+totalFailed += failed
 
 if totalFailed > 0 then
     error(string.format("Tests failed: %d", totalFailed))

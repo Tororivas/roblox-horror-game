@@ -462,8 +462,9 @@ function PlayerController.CalculateMovementDirection(yaw: number): any
             moveX += 1
         end
         
-        -- Track sprint state
-        _movementState.isSprinting = inputState.Shift or false
+        -- Sprint only works while moving: Shift + WASD pressed
+        local isMovingWASD = (moveX ~= 0 or moveZ ~= 0)
+        _movementState.isSprinting = (inputState.Shift and isMovingWASD) or false
     else
         -- No input handler and no test input, no movement
         _movementState.isMoving = false
@@ -706,6 +707,14 @@ function PlayerController.Cleanup(): ()
     _movementState.isMoving = false
     _movementState.isSprinting = false
     _movementState.lastMoveDirection = {X = 0, Y = 0, Z = 0}
+    
+    -- Reset humanoid walk speed
+    if _humanoid and _humanoid.SetWalkSpeed then
+        _humanoid:SetWalkSpeed(_movementConfig.walkSpeed)
+    elseif _humanoid and _humanoid.WalkSpeed ~= nil then
+        _humanoid.WalkSpeed = _movementConfig.walkSpeed
+    end
+    
     _humanoid = nil
 end
 
@@ -733,6 +742,11 @@ end
 function PlayerController.ResetMockHumanoid(): ()
     MockHumanoid.MoveDirection = {X = 0, Y = 0, Z = 0}
     MockHumanoid.WalkSpeed = 16
+end
+
+-- Get MockHumanoid WalkSpeed (for testing)
+function PlayerController.GetMockWalkSpeed(): number
+    return MockHumanoid.WalkSpeed
 end
 
 -- Internal: Set InputState directly for testing
