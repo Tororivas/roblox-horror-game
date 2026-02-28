@@ -50,6 +50,42 @@ function Tests.runAll(): (number, number)
     totalFailed += failed
     
     print()
+    
+    -- Run PowerManager Light States tests
+    print("-- Running PowerManager Light States Tests --")
+    local lightStatesTest = require("./unit/PowerManager.LightStates.spec")
+    passed, failed = lightStatesTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run LightInteraction tests
+    print("-- Running LightInteraction Tests --")
+    local lightInteractionTest = require("./unit/LightInteraction.spec")
+    passed, failed = lightInteractionTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run InputHandler tests
+    print("-- Running InputHandler Tests --")
+    local inputHandlerTest = require("./unit/InputHandler.spec")
+    passed, failed = inputHandlerTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run Server Toggle Handler tests (US-007)
+    print("-- Running Server Toggle Handler Tests --")
+    local toggleHandlerTest = require("./unit/ServerToggleHandler.spec")
+    passed, failed = toggleHandlerTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
     print("=" .. string.rep("=", 40))
     print(string.format("  FINAL RESULTS: %d passed, %d failed", totalPassed, totalFailed))
     print("=" .. string.rep("=", 40))
