@@ -41,6 +41,15 @@ function Tests.runAll(): (number, number)
     totalFailed += failed
     
     print()
+    
+    -- Run PowerManager tests
+    print("-- Running PowerManager Tests --")
+    local powerManagerTest = require("./unit/PowerManager.spec")
+    passed, failed = powerManagerTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
     print("=" .. string.rep("=", 40))
     print(string.format("  FINAL RESULTS: %d passed, %d failed", totalPassed, totalFailed))
     print("=" .. string.rep("=", 40))
