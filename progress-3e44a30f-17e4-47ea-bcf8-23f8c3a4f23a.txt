@@ -1,0 +1,96 @@
+# Progress Log
+Run: 3e44a30f-17e4-47ea-bcf8-23f8c3a4f23a
+Task: Roblox Horror Game - Phase 1A Player Controller
+Started: 2026-02-27
+
+## Codebase Patterns
+- **File locations:**
+  - Modules go in `ReplicatedStorage/Modules/`
+  - Test files go in `tests/unit/`
+  - Client scripts go in `StarterPlayerScripts/`
+- **Test structure:** Create a self-contained test function that runs in isolation, uses mock services
+- **Type safety:** Use `--!strict` at top of every file, define types in globalTypes.d.lua
+- **Luau patterns:** Test modules return a runTests function which returns (passed, failed counts)
+- **Roblox environment detection:** Check for `game:GetService("RunService"):IsRunning()` to detect real vs test environment
+- **Type annotation:** Use `field = value :: Type` instead of `field: Type = value` in table literals
+- **Highlight instances:** Use `Highlight` Roblox instances with FillColor and OutlineColor properties
+- **Cooldown tracking:** Use negative initial time values to avoid cooldown on first interaction
+- **Sound instances:** Use Sound instances with Name, SoundId, Volume, PlaybackSpeed; track PlayCount for testing
+
+---
+
+## 2026-02-28 - US-008: E Key Interaction System
+- Created ReplicatedStorage/Modules/InteractionController.lua with E key interaction:
+  - Initialize() with InputHandler, InteractionDetector, ObjectHighlighter integration
+  - TryInteract() function validates interactable objects and triggers interaction
+  - E key detection via OnInputEnded callback (triggers on key release)
+  - RemoteEvent 'InteractionRequest' fired to server with target and hit position
+  - BindableEvent triggering for objects with Interact event
+  - Feedback system with 0.1s duration indicator
+  - Cooldown system: 0.3 seconds between interactions to prevent spam
+  - Max interaction distance: 5 studs (enforced)
+  - Validates all conditions: initialized, enabled, not on cooldown, valid target, within distance
+- Created tests/unit/InteractionController.spec.lua with 25 comprehensive test cases:
+  - Module initialization and state management
+  - E key input handling and filtering
+  - Cooldown mechanics (enforced during cooldown, released after)
+  - RemoteEvent firing with correct target and position
+  - BindableEvent triggering for objects with Interact child
+  - Feedback activation and duration
+  - Distance validation (fails > 5 studs, succeeds <= 5 studs)
+  - Edge cases: uninitialized, disabled, no detection, non-interactable, nil objects
+- Typecheck passes on InteractionController.lua (luau-analyze)
+- All 134 tests pass (existing 109 + 25 new)
+
+**Files Changed:**
+- ReplicatedStorage/Modules/InteractionController.lua (new)
+- tests/unit/InteractionController.spec.lua (new)
+- test.lua (modified - added InteractionController tests)
+
+**Learnings:**
+- Cooldown check needs to account for initial state; use negative initial time to mark "never used"
+- E key input should use OnInputEnded (key release) for cleaner interaction feel
+- gameProcessedEvent must be checked to avoid triggering during UI text input
+- Mock module dependencies with direct property assignment, then pass to Initialize
+- Initialize should preserve existing dependencies if passed nil (for testing)
+- RemoteEvent and BindableEvent firing should both occur on successful interaction
+
+---
+
+## 2026-02-28 - US-009: Footstep Sound System
+- Created ReplicatedStorage/Modules/FootstepSoundSystem.lua with footstep sound management:
+  - Initialize(parent) creates Sound instances for left/right footsteps
+  - Update(speed, isSprinting?) triggers footsteps based on movement threshold (>0.1)
+  - OnRunning(speed) wrapper for Humanoid.Running event integration
+  - Cooldown system: 0.35 seconds between footstep sounds
+  - Automatic left/right foot alternation (_isLeftFoot tracking)
+  - Pitch adjustment: 1.0x for walk, 1.1x for sprint
+  - Mock sound support with Play/Stop/GetPlayCount methods
+  - Cleanup destroys sound instances and resets all state
+- Created tests/unit/FootstepSoundSystem.spec.lua with 24 comprehensive test cases:
+  - Module initialization and state management
+  - Sound creation and properties
+  - Movement threshold validation (0.1)
+  - Cooldown mechanics (0.35s enforced, released after)
+  - Left/right foot alternation
+  - Sprint pitch (1.1x) vs walk pitch (1.0x)
+  - Movement stop detection (sounds stop when speed <= threshold)
+  - Cleanup functionality
+  - Time tracking and cooldown calculation
+- Typecheck passes on FootstepSoundSystem.lua (luau-analyze)
+- All 188 tests pass (existing 164 + 24 new FootstepSoundSystem tests)
+
+**Files Changed:**
+- ReplicatedStorage/Modules/FootstepSoundSystem.lua (new)
+- tests/unit/FootstepSoundSystem.spec.lua (new)
+- test.lua (modified - added FootstepSoundSystem tests)
+
+**Learnings:**
+- Sound instances use Name, SoundId, Volume, PlaybackSpeed properties
+- Mock sounds need PlayCount tracking and LastPlayTime for test assertions
+- Cooldown pattern: use negative initial time (-1000) for "never played" state
+- Threshold comparisons: speed > MOVE_THRESHOLD for movement detection
+- Pitch multipliers: 1.1x creates noticeable but not jarring pitch increase
+- Test modules need inline mock time to properly test cooldown mechanics
+
+---
