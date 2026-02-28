@@ -51,6 +51,13 @@ passed, failed = objectHighlighterTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run InteractionController tests (US-008)
+print("\n--- InteractionController Tests (US-008) ---")
+local interactionControllerTest = require("./tests/unit/InteractionController.spec")
+passed, failed = interactionControllerTest()
+totalPassed += passed
+totalFailed += failed
+
 print(string.format("\nFinal: %d passed, %d failed", totalPassed, totalFailed))
 
 if totalFailed > 0 then
