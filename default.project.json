@@ -8,7 +8,7 @@
         "$path": "ReplicatedStorage/Modules"
       },
       "Events": {
-        "$className": "Folder"
+        "$path": "ReplicatedStorage/Events"
       }
     },
     "ServerScriptService": {

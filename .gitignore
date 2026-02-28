@@ -1,3 +1,11 @@
+# Security
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.secret
+
 # Luau/JIT
 *.luau.luac
 *.lua.luac

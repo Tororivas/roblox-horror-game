@@ -17,8 +17,26 @@ function Tests.runAll(): (number, number)
     
     -- Run Types module tests
     print("-- Running Types Tests --")
-    local typesTest = require("./tests/unit/Types.spec")
+    local typesTest = require("./unit/Types.spec")
     local passed, failed = typesTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run PowerConfig module tests
+    print("-- Running PowerConfig Tests --")
+    local powerConfigTest = require("./unit/PowerConfig.spec")
+    passed, failed = powerConfigTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run RemoteEvents tests
+    print("-- Running RemoteEvents Tests --")
+    local remoteEventsTest = require("./unit/RemoteEvents.spec")
+    passed, failed = remoteEventsTest()
     totalPassed += passed
     totalFailed += failed
     
