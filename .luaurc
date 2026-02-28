@@ -1,0 +1,40 @@
+{
+  "languageMode": "strict",
+  "lint": {
+    "*": true,
+    "LocalUnused": false,
+    "ImportUnused": false
+  },
+  "lintErrors": true,
+  "typeErrors": true,
+  "globals": [
+    "game",
+    "workspace",
+    "script",
+    "require",
+    "pairs",
+    "ipairs",
+    "next",
+    "tonumber",
+    "tostring",
+    "type",
+    "typeof",
+    "unpack",
+    "select",
+    "pcall",
+    "xpcall",
+    "assert",
+    "error",
+    "warn",
+    "print",
+    "spawn",
+    "delay",
+    "wait",
+    "tick",
+    "time",
+    "UserSettings",
+    "settings",
+    "version",
+    "Enum"
+  ]
+}

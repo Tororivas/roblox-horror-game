@@ -1,0 +1,33 @@
+# Luau/JIT
+*.luau.luac
+*.lua.luac
+
+# Output
+out/
+dist/
+build/
+
+# IDE
+.vscode/settings.json
+.vscode/launch.json
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Roblox Studio
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+.rbxmkrc
+
+# Rojo
+sourcemap.json
+
+# Luau
+luau-analyze.log
