@@ -72,6 +72,13 @@ passed, failed = sanityManagerTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run PlayerController Integration tests (US-011)
+print("\n--- PlayerController Integration Tests (US-011) ---")
+local playerControllerIntegrationTest = require("./tests/unit/PlayerController_Integration.spec")
+passed, failed = playerControllerIntegrationTest()
+totalPassed += passed
+totalFailed += failed
+
 -- Run UI Component Tests
 print("\n--- Running GameUI Controller Tests ---")
 local gameUITest = require("./tests/unit/GameUI.spec")
