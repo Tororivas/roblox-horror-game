@@ -44,6 +44,13 @@ passed, failed = interactionDetectorTest()
 totalPassed += passed
 totalFailed += failed
 
+-- Run ObjectHighlighter tests (US-007)
+print("\n--- ObjectHighlighter Tests (US-007) ---")
+local objectHighlighterTest = require("./tests/unit/ObjectHighlighter.spec")
+passed, failed = objectHighlighterTest()
+totalPassed += passed
+totalFailed += failed
+
 print(string.format("\nFinal: %d passed, %d failed", totalPassed, totalFailed))
 
 if totalFailed > 0 then
