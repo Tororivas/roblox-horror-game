@@ -3,7 +3,7 @@
     PowerManager Module
     Server-side module for managing the house power system.
     Tracks power state and provides controlled access to power information.
-    Power is stored server-side only and not directly replicated.
+    Power is stored server-side only and replicated via PowerChanged event.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,6 +13,10 @@ local PowerManager = {}
 
 -- Private state (server-side only)
 local currentPower: number = PowerConfig.POWER_START
+
+-- Get reference to PowerChanged RemoteEvent
+local EventsFolder = ReplicatedStorage:WaitForChild("Events")
+local PowerChangedEvent: any = EventsFolder:WaitForChild("PowerChanged")
 
 --[[
     Returns the current power value.
@@ -58,6 +62,29 @@ end
 ]]
 function PowerManager.HasPower(): boolean
     return currentPower > PowerConfig.MIN_POWER
+end
+
+--[[
+    Deducts power by a specified amount.
+    Returns true if deduction was successful (power >= 0 after deduction).
+    Returns false if not enough power (power would go below MIN_POWER).
+    When power changes, fires PowerChanged RemoteEvent to all clients.
+    @param amount number - Amount of power to deduct
+    @return boolean - True if deduction was successful
+]]
+function PowerManager.DeductPower(amount: number): boolean
+    -- Cannot deduct if it would go below MIN_POWER
+    if currentPower - amount < PowerConfig.MIN_POWER then
+        return false
+    end
+    
+    -- Deduct the power
+    currentPower = currentPower - amount
+    
+    -- Fire event to all clients with new power value
+    PowerChangedEvent:FireAllClients(currentPower)
+    
+    return true
 end
 
 --[[

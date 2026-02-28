@@ -11,10 +11,34 @@ local mockPowerConfig = {
     MIN_POWER = 0,
 }
 
+-- Track fired events for testing
+local firedEvents: {[string]: {any}} = {}
+
+local mockPowerChangedEvent = {
+    FireAllClients = function(_self: any, value: any)
+        table.insert(firedEvents, {"PowerChanged", value})
+    end,
+}
+
+local mockEventsFolder = {
+    WaitForChild = function(_self: any, name: string): any
+        if name == "PowerChanged" then
+            return mockPowerChangedEvent
+        end
+        error("Unknown event: " .. name)
+    end,
+}
+
 local mockReplicatedStorage = {
     Modules = {
         PowerConfig = mockPowerConfig
-    }
+    },
+    WaitForChild = function(_self: any, name: string): any
+        if name == "Events" then
+            return mockEventsFolder
+        end
+        error("Unknown child: " .. name)
+    end,
 }
 
 -- Set up global game mock in the module's environment
@@ -60,6 +84,21 @@ end
 
 function PowerManager.HasPower(): boolean
     return currentPower > mockPowerConfig.MIN_POWER
+end
+
+function PowerManager.DeductPower(amount: number): boolean
+    -- Cannot deduct if it would go below MIN_POWER
+    if currentPower - amount < mockPowerConfig.MIN_POWER then
+        return false
+    end
+    
+    -- Deduct the power
+    currentPower = currentPower - amount
+    
+    -- Fire event to all clients with new power value
+    mockPowerChangedEvent:FireAllClients(currentPower)
+    
+    return true
 end
 
 function PowerManager.Reset(): ()
@@ -149,8 +188,94 @@ local function runTests()
         passed += 1
     end
 
+    -- Test 8: DeductPower function exists and is accessible
+    local test8 = function()
+        assert(typeof(PowerManager.DeductPower) == "function", "DeductPower should be a function")
+        print("✓ DeductPower function exists")
+        passed += 1
+    end
+
+    -- Test 9: DeductPower(10) reduces power from 100 to 90
+    local test9 = function()
+        PowerManager.Reset()
+        firedEvents = {} -- Clear fired events
+        local success = PowerManager.DeductPower(10)
+        assert(success == true, "DeductPower(10) should return true")
+        local power = PowerManager.GetPower()
+        assert(power == 90, string.format("Power should be 90 after DeductPower(10), got %s", tostring(power)))
+        print(string.format("✓ DeductPower(10) reduces power from 100 to %d", power))
+        passed += 1
+    end
+
+    -- Test 10: DeductPower returns true when power is sufficient
+    local test10 = function()
+        PowerManager.Reset()
+        firedEvents = {} -- Clear fired events
+        local success = PowerManager.DeductPower(50)
+        assert(success == true, "DeductPower(50) should return true when power is 100")
+        print("✓ DeductPower returns true when power is sufficient")
+        passed += 1
+    end
+
+    -- Test 11: DeductPower returns false when power would go below MIN_POWER
+    local test11 = function()
+        PowerManager.Reset()
+        PowerManager.SetPower(15)
+        firedEvents = {} -- Clear fired events
+        local success = PowerManager.DeductPower(20)
+        assert(success == false, "DeductPower(20) should return false when power is 15")
+        local power = PowerManager.GetPower()
+        assert(power == 15, string.format("Power should remain 15 after failed deduction, got %s", tostring(power)))
+        print("✓ DeductPower returns false when power would go below MIN_POWER")
+        passed += 1
+    end
+
+    -- Test 12: PowerChanged event fires with new power value after deduction
+    local test12 = function()
+        PowerManager.Reset()
+        firedEvents = {} -- Clear fired events
+        PowerManager.DeductPower(25)
+        
+        assert(#firedEvents >= 1, "PowerChanged event should have fired")
+        assert(firedEvents[1][1] == "PowerChanged", "Event name should be PowerChanged")
+        assert(firedEvents[1][2] == 75, string.format("Event value should be 75, got %s", tostring(firedEvents[1][2])))
+        print("✓ PowerChanged event fires with new power value after deduction")
+        passed += 1
+    end
+
+    -- Test 13: Cannot deduct power that would result in negative value
+    local test13 = function()
+        PowerManager.Reset()
+        PowerManager.SetPower(5)
+        firedEvents = {} -- Clear fired events
+        local success = PowerManager.DeductPower(10)
+        assert(success == false, "DeductPower(10) should return false when power is 5")
+        local power = PowerManager.GetPower()
+        assert(power == 5, string.format("Power should remain 5 after failed deduction, got %s", tostring(power)))
+        assert(#firedEvents == 0, "No event should fire when deduction fails")
+        print("✓ Cannot deduct power that would result in negative value")
+        passed += 1
+    end
+
+    -- Test 14: Multiple deductions accumulate correctly
+    local test14 = function()
+        PowerManager.Reset()
+        firedEvents = {} -- Clear fired events
+        
+        -- Deduct 10 three times
+        PowerManager.DeductPower(10)
+        PowerManager.DeductPower(10)
+        PowerManager.DeductPower(10)
+        
+        local power = PowerManager.GetPower()
+        assert(power == 70, string.format("Power should be 70 after 3 deductions of 10, got %s", tostring(power)))
+        assert(#firedEvents == 3, string.format("Should have fired 3 events, got %d", #firedEvents))
+        print(string.format("✓ Multiple deductions accumulate correctly: %d power remaining, %d events fired", power, #firedEvents))
+        passed += 1
+    end
+
     -- Run all tests
-    local tests = {test1, test2, test3, test4, test5, test6, test7}
+    local tests = {test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14}
     
     for _, test in ipairs(tests) do
         local success, err = pcall(test)
