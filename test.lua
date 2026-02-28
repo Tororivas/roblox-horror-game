@@ -16,10 +16,17 @@ passed, failed = inputHandlerTest()
 totalPassed += passed
 totalFailed += failed
 
--- Run PlayerController module tests
-print("\n--- PlayerController Tests ---")
+-- Run PlayerController camera tests
+print("\n--- PlayerController Camera Tests ---")
 local playerControllerTest = require("./tests/unit/PlayerController.spec")
 passed, failed = playerControllerTest()
+totalPassed += passed
+totalFailed += failed
+
+-- Run PlayerController movement tests (US-004)
+print("\n--- PlayerController Movement Tests (US-004) ---")
+local playerControllerMovementTest = require("./tests/unit/PlayerController_Movement.spec")
+passed, failed = playerControllerMovementTest()
 totalPassed += passed
 totalFailed += failed
 

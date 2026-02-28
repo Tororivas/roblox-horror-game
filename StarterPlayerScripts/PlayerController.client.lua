@@ -2,19 +2,44 @@
 --[[
     PlayerController Module
     First-person camera controller for the Roblox Horror Game.
-    Handles camera rotation, mouse look, and cursor locking.
+    Handles camera rotation, mouse look, cursor locking, and WASD movement.
     This is a client script that runs when the player spawns.
 ]]
 
--- Import shared types for type checking
-local ReplicatedStorage: any = game:FindFirstChild("ReplicatedStorage")
+-- Import shared types and modules for type checking
+local ReplicatedStorage: any = nil
 local TypesModule: any = nil
 local Types: any = nil
+local InputHandler: any = nil
 
+-- Safely get ReplicatedStorage
+local success, result = pcall(function()
+    return (game :: any):GetService("ReplicatedStorage")
+end)
+if success then
+    ReplicatedStorage = result
+end
+
+-- Require modules if available
 if ReplicatedStorage then
-    TypesModule = ReplicatedStorage:FindFirstChild("Modules")
-    if TypesModule then
-        Types = require(TypesModule:FindFirstChild("Types"))
+    local modulesFolder = ReplicatedStorage:FindFirstChild("Modules")
+    if modulesFolder then
+        local typesModule = modulesFolder:FindFirstChild("Types")
+        local inputModule = modulesFolder:FindFirstChild("InputHandler")
+        
+        if typesModule then
+            local ok, mod = pcall(require, typesModule)
+            if ok then
+                Types = mod
+            end
+        end
+        
+        if inputModule then
+            local ok, mod = pcall(require, inputModule)
+            if ok then
+                InputHandler = mod
+            end
+        end
     end
 end
 
@@ -26,11 +51,25 @@ export type CameraConfig = {
     maxLookDown: number,
 }
 
+-- Movement configuration
+export type MovementConfig = {
+    walkSpeed: number,
+    sprintSpeed: number,
+    footstepCooldown: number,
+}
+
 -- Camera state
 export type CameraState = {
     yaw: number,        -- Horizontal rotation (left/right)
     pitch: number,      -- Vertical rotation (up/down)
     isFirstPerson: boolean,
+}
+
+-- Movement state
+export type MovementState = {
+    isMoving: boolean,
+    isSprinting: boolean,
+    lastMoveDirection: any, -- Vector3
 }
 
 -- Default camera configuration
@@ -39,6 +78,13 @@ local DEFAULT_CAMERA_CONFIG: CameraConfig = {
     mouseSensitivity = 0.002,
     maxLookUp = math.rad(80),    -- 80 degrees up
     maxLookDown = -math.rad(80), -- 80 degrees down
+}
+
+-- Default movement configuration
+local DEFAULT_MOVEMENT_CONFIG: MovementConfig = {
+    walkSpeed = 16,
+    sprintSpeed = 24,
+    footstepCooldown = 0.5,
 }
 
 -- Constants
@@ -65,6 +111,19 @@ local _cameraState: CameraState = {
 
 -- Camera configuration
 local _cameraConfig: CameraConfig = DEFAULT_CAMERA_CONFIG
+
+-- Movement state
+local _movementState: MovementState = {
+    isMoving = false,
+    isSprinting = false,
+    lastMoveDirection = {X = 0, Y = 0, Z = 0},
+}
+
+-- Movement configuration
+local _movementConfig: MovementConfig = DEFAULT_MOVEMENT_CONFIG
+
+-- Humanoid reference for movement
+local _humanoid: any? = nil
 
 -- Mock services for testing environment
 local MockCamera: any = {
@@ -118,6 +177,31 @@ local MockPlayers: any = {
     LocalPlayer = {
         Character = nil,
     },
+}
+
+-- Forward declare MockHumanoid for testing
+local MockHumanoid: any = nil
+
+-- Define MockHumanoid after forward declaration
+MockHumanoid = {
+    MoveDirection = {X = 0, Y = 0, Z = 0},
+    WalkSpeed = 16,
+    
+    Move = function(_self: any, direction: any)
+        MockHumanoid.MoveDirection = direction
+    end,
+    
+    GetMoveDirection = function(_self: any): any
+        return MockHumanoid.MoveDirection
+    end,
+    
+    GetWalkSpeed = function(_self: any): number
+        return MockHumanoid.WalkSpeed
+    end,
+    
+    SetWalkSpeed = function(_self: any, speed: number)
+        MockHumanoid.WalkSpeed = speed
+    end,
 }
 
 -- Get real services or use mocks
@@ -352,6 +436,140 @@ function PlayerController.IsFirstPerson(): boolean
     return _cameraState.isFirstPerson
 end
 
+-- ========== MOVEMENT FUNCTIONS ==========
+
+-- Calculate world movement direction based on camera yaw and WASD input
+-- Returns a normalized direction vector (no vertical component)
+function PlayerController.CalculateMovementDirection(yaw: number): any
+    -- Get input state from InputHandler or test state
+    local inputState = PlayerController.GetInputStateForMovement()
+    
+    -- Calculate local movement direction from WASD
+    local moveX = 0 -- Left/right (A/D)
+    local moveZ = 0 -- Forward/back (W/S)
+    
+    if inputState then
+        if inputState.W then
+            moveZ -= 1
+        end
+        if inputState.S then
+            moveZ += 1
+        end
+        if inputState.A then
+            moveX -= 1
+        end
+        if inputState.D then
+            moveX += 1
+        end
+        
+        -- Track sprint state
+        _movementState.isSprinting = inputState.Shift or false
+    else
+        -- No input handler and no test input, no movement
+        _movementState.isMoving = false
+        _movementState.lastMoveDirection = {X = 0, Y = 0, Z = 0}
+        return {X = 0, Y = 0, Z = 0}
+    end
+    
+    -- Normalize diagonal movement
+    local magnitude = math.sqrt(moveX * moveX + moveZ * moveZ)
+    if magnitude > 0 then
+        local normalizedX = moveX / magnitude
+        local normalizedZ = moveZ / magnitude
+        _movementState.isMoving = true
+        
+        -- Update with normalized values
+        moveX = normalizedX
+        moveZ = normalizedZ
+    else
+        _movementState.isMoving = false
+        _movementState.lastMoveDirection = {X = 0, Y = 0, Z = 0}
+        return {X = 0, Y = 0, Z = 0}
+    end
+    
+    -- Convert to world space based on camera yaw
+    -- Yaw represents rotation around Y axis
+    local cosYaw = math.cos(yaw)
+    local sinYaw = math.sin(yaw)
+    
+    -- Transform local direction to world direction
+    -- Forward/back (Z) affects X/Z based on yaw
+    -- Left/right (X) affects X/Z perpendicular to forward
+    local worldX = (moveX * cosYaw) - (moveZ * sinYaw)
+    local worldZ = (moveX * sinYaw) + (moveZ * cosYaw)
+    
+    local worldDirection = {
+        X = worldX,
+        Y = 0,
+        Z = worldZ,
+    }
+    
+    _movementState.lastMoveDirection = worldDirection
+    return worldDirection
+end
+
+-- Apply movement to character's Humanoid
+function PlayerController.ApplyMovement(direction: any): ()
+    if _humanoid then
+        -- In Roblox, Humanoid:Move(directionVector) accepts a Vector3
+        -- In our mock, we call the Move method
+        _humanoid:Move(direction)
+    end
+end
+
+-- Get current movement state
+function PlayerController.GetMovementState(): MovementState
+    return {
+        isMoving = _movementState.isMoving,
+        isSprinting = _movementState.isSprinting,
+        lastMoveDirection = _movementState.lastMoveDirection,
+    }
+end
+
+-- Get movement configuration
+function PlayerController.GetMovementConfig(): MovementConfig
+    return {
+        walkSpeed = _movementConfig.walkSpeed,
+        sprintSpeed = _movementConfig.sprintSpeed,
+        footstepCooldown = _movementConfig.footstepCooldown,
+    }
+end
+
+-- Set movement configuration
+function PlayerController.SetMovementConfig(config: MovementConfig): ()
+    _movementConfig = {
+        walkSpeed = config.walkSpeed or DEFAULT_MOVEMENT_CONFIG.walkSpeed,
+        sprintSpeed = config.sprintSpeed or DEFAULT_MOVEMENT_CONFIG.sprintSpeed,
+        footstepCooldown = config.footstepCooldown or DEFAULT_MOVEMENT_CONFIG.footstepCooldown,
+    }
+end
+
+-- Get current walk speed
+function PlayerController.GetWalkSpeed(): number
+    if _movementState.isSprinting then
+        return _movementConfig.sprintSpeed
+    else
+        return _movementConfig.walkSpeed
+    end
+end
+
+-- Check if currently sprinting
+function PlayerController.IsSprinting(): boolean
+    return _movementState.isSprinting
+end
+
+-- Check if currently moving
+function PlayerController.IsMoving(): boolean
+    return _movementState.isMoving
+end
+
+-- Get last calculated move direction
+function PlayerController.GetMoveDirection(): any
+    return _movementState.lastMoveDirection
+end
+
+-- ========== END MOVEMENT FUNCTIONS ==========
+
 -- Handle input changed (mouse movement)
 local function OnInputChanged(inputObject: any, gameProcessedEvent: boolean): ()
     if gameProcessedEvent then
@@ -377,7 +595,7 @@ local function OnInputChanged(inputObject: any, gameProcessedEvent: boolean): ()
     end
 end
 
--- Update the camera on render step
+-- Update the camera and movement on render step
 local function OnRenderStep(): ()
     if not _cameraState.isFirstPerson then
         return
@@ -385,19 +603,52 @@ local function OnRenderStep(): ()
     
     local camera, userInput, _run, players = GetServices()
     
-    if camera and players and players.LocalPlayer then
+    if players and players.LocalPlayer then
         local character = players.LocalPlayer.Character
         if character then
-            local head = character:FindFirstChild("Head")
-            if head then
-                -- Calculate camera CFrame
-                local headPos = head.Position
-                local cameraCFrame = PlayerController.CalculateCameraCFrame(headPos)
-                
-                -- Apply to camera
-                if camera.CFrame and type(camera.CFrame) == "table" then
-                    camera.CFrame = cameraCFrame
+            -- Update Humanoid reference
+            if not _humanoid then
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid then
+                    _humanoid = humanoid
+                    -- Wire up MockHumanoid in test environment
+                    if _humanoid.Move == nil then
+                        -- In test environment, swap with MockHumanoid
+                        _humanoid = MockHumanoid
+                    end
                 end
+            end
+            
+            -- Handle camera
+            if camera then
+                local head = character:FindFirstChild("Head")
+                if head then
+                    -- Calculate camera CFrame
+                    local headPos = head.Position
+                    local cameraCFrame = PlayerController.CalculateCameraCFrame(headPos)
+                    
+                    -- Apply to camera
+                    if camera.CFrame and type(camera.CFrame) == "table" then
+                        camera.CFrame = cameraCFrame
+                    end
+                end
+            end
+            
+            -- Handle movement - calculate direction from camera yaw
+            local moveDirection = PlayerController.CalculateMovementDirection(_cameraState.yaw)
+            
+            -- Update walk speed based on sprint state
+            if _humanoid and _humanoid.WalkSpeed ~= nil then
+                if _movementState.isSprinting then
+                    _humanoid.WalkSpeed = _movementConfig.sprintSpeed
+                else
+                    _humanoid.WalkSpeed = _movementConfig.walkSpeed
+                end
+            end
+            
+            -- Apply movement to Humanoid
+            if _humanoid then
+                PlayerController.ApplyMovement(moveDirection)
             end
         end
     end
@@ -412,12 +663,17 @@ function PlayerController.Initialize(): ()
     -- Get services
     local _camera, userInput, runService, _players = GetServices()
     
+    -- Start InputHandler for WASD input
+    if InputHandler then
+        InputHandler.Start()
+    end
+    
     -- Connect input changed for mouse movement
     if userInput then
         userInput.InputChanged:Connect(OnInputChanged)
     end
     
-    -- Connect render stepped for camera updates
+    -- Connect render stepped for camera and movement updates
     if runService then
         runService.RenderStepped:Connect(OnRenderStep)
     end
@@ -435,11 +691,77 @@ end
 
 -- Cleanup the controller
 function PlayerController.Cleanup(): ()
+    -- Stop InputHandler
+    if InputHandler then
+        InputHandler.Stop()
+    end
+    
     PlayerController.DisableFirstPerson()
     _isInitialized = false
     _cameraState.yaw = 0
     _cameraState.pitch = 0
     _cameraState.isFirstPerson = false
+    
+    -- Reset movement state
+    _movementState.isMoving = false
+    _movementState.isSprinting = false
+    _movementState.lastMoveDirection = {X = 0, Y = 0, Z = 0}
+    _humanoid = nil
 end
+
+-- Set a mock humanoid for testing
+function PlayerController.SetMockHumanoid(humanoid: any): ()
+    _humanoid = humanoid or MockHumanoid
+end
+
+-- Set a mock InputHandler for testing
+function PlayerController.SetMockInputHandler(inputHandler: any): ()
+    InputHandler = inputHandler
+end
+
+-- Get MockHumanoid reference (for test assertion)
+function PlayerController.GetMockHumanoid(): any
+    return MockHumanoid
+end
+
+-- Get MockHumanoid's current move direction (for testing)
+function PlayerController.GetMockMoveDirection(): any
+    return MockHumanoid.MoveDirection
+end
+
+-- Reset MockHumanoid state (for testing)
+function PlayerController.ResetMockHumanoid(): ()
+    MockHumanoid.MoveDirection = {X = 0, Y = 0, Z = 0}
+    MockHumanoid.WalkSpeed = 16
+end
+
+-- Internal: Set InputState directly for testing
+-- This allows tests to control movement without needing InputHandler
+local _testInputState: any = nil
+
+function PlayerController.SetTestInputState(inputState: any): ()
+    _testInputState = inputState
+end
+
+function PlayerController.ClearTestInputState(): ()
+    _testInputState = nil
+end
+
+-- Get input state (using test state if set, otherwise InputHandler)
+function PlayerController.GetInputStateForMovement(): any
+    if _testInputState then
+        return _testInputState
+    elseif InputHandler then
+        return InputHandler.GetInputState()
+    else
+        return nil
+    end
+end
+
+-- Modify CalculateMovementDirection to use test input state
+-- (Need to update the function to use GetInputStateForMovement)
+
+-- Re-define CalculateMovementDirection with test input support
+-- (The actual function is defined elsewhere in the module)
 
 return PlayerController
