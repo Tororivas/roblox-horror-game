@@ -78,10 +78,10 @@ function Tests.runAll(): (number, number)
     
     print()
     
-    -- Run Server Toggle Handler tests (US-007)
-    print("-- Running Server Toggle Handler Tests --")
-    local toggleHandlerTest = require("./unit/ServerToggleHandler.spec")
-    passed, failed = toggleHandlerTest()
+    -- Run ServerToggleHandler tests
+    print("-- Running ServerToggleHandler Tests --")
+    local serverToggleTest = require("./unit/ServerToggleHandler.spec")
+    passed, failed = serverToggleTest()
     totalPassed += passed
     totalFailed += failed
     
