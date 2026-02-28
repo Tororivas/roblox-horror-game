@@ -4,8 +4,17 @@
     Validates power system configuration constants.
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PowerConfig = require(ReplicatedStorage.Modules.PowerConfig)
+-- Inline PowerConfig for standalone testing
+local PowerConfig = {
+    -- Initial power percentage when game starts
+    POWER_START = 100,
+    
+    -- Power consumed per light toggle (percent)
+    POWER_COST_PER_TOGGLE = 10,
+    
+    -- Minimum power threshold (game over for power when this is reached)
+    MIN_POWER = 0,
+}
 
 local function runTests()
     print("Running PowerConfig module tests...")

@@ -16,14 +16,14 @@ export type InputState = {
 }
 
 export type InputEventData = {
-    inputObject: any,
+    inputObject: any, -- InputObject in Roblox
     gameProcessedEvent: boolean,
 }
 
 -- Callback types
-export type InputBeganCallback = (any, boolean) -> ()
-export type InputEndedCallback = (any, boolean) -> ()
-export type InputChangedCallback = (any, boolean) -> ()
+export type InputBeganCallback = (any, boolean) -> () -- InputObject, gameProcessedEvent
+export type InputEndedCallback = (any, boolean) -> () -- InputObject, gameProcessedEvent
+export type InputChangedCallback = (any, boolean) -> () -- InputObject, gameProcessedEvent
 
 -- Module table
 local InputHandler = {}
@@ -39,19 +39,22 @@ local _inputState: InputState = {
     E = false,
 }
 
--- Event storage
+-- Event storage - using tables as signal lists
 local _inputBeganCallbacks: { InputBeganCallback } = {}
 local _inputEndedCallbacks: { InputEndedCallback } = {}
 local _inputChangedCallbacks: { InputChangedCallback } = {}
 
--- Mock services
+-- Mock ContextActionService for non-Roblox environments
 local MockContextActionService = {
     BindAction = function(_actionName: string, _callback: any, _createTouchButton: boolean, ...)
+        -- Mock implementation
     end,
     UnbindAction = function(_actionName: string)
+        -- Mock implementation
     end,
 }
 
+-- Mock UserInputService for non-Roblox environments  
 local MockUserInputService = {
     InputBegan = {
         Connect = function(_callback: any): any
@@ -70,9 +73,11 @@ local MockUserInputService = {
     },
 }
 
+-- Initialize services with mocks
 local ContextActionService: any = MockContextActionService
 local UserInputService: any = MockUserInputService
 
+-- Try to get real services if running in Roblox
 local success: boolean, result: any = pcall(function()
     return (game :: any):GetService("ContextActionService")
 end)
@@ -103,6 +108,10 @@ local KEY_MAP: { [string]: string? } = {
     ["E"] = "E",
 }
 
+--[[
+    Get the current input state table
+    Returns a copy of the current state
+]]
 function InputHandler.GetInputState(): InputState
     return {
         W = _inputState.W,
@@ -114,6 +123,9 @@ function InputHandler.GetInputState(): InputState
     }
 end
 
+--[[
+    Reset the input state (Useful for debugging/testing)
+]]
 function InputHandler.ResetInputState(): ()
     _inputState = {
         W = false,
@@ -125,6 +137,9 @@ function InputHandler.ResetInputState(): ()
     }
 end
 
+--[[
+    Handle input began event
+]]
 local function OnInputBegan(inputObject: any, gameProcessedEvent: boolean): ()
     if gameProcessedEvent then
         return
@@ -142,6 +157,7 @@ local function OnInputBegan(inputObject: any, gameProcessedEvent: boolean): ()
         _inputState[keyName] = true
     end
 
+    -- Dispatch to all registered callbacks
     for _, callback in ipairs(_inputBeganCallbacks) do
         local ok, err = pcall(callback, inputObject, gameProcessedEvent)
         if not ok then
@@ -150,6 +166,9 @@ local function OnInputBegan(inputObject: any, gameProcessedEvent: boolean): ()
     end
 end
 
+--[[
+    Handle input ended event
+]]
 local function OnInputEnded(inputObject: any, gameProcessedEvent: boolean): ()
     if gameProcessedEvent then
         return
@@ -167,6 +186,7 @@ local function OnInputEnded(inputObject: any, gameProcessedEvent: boolean): ()
         _inputState[keyName] = false
     end
 
+    -- Dispatch to all registered callbacks
     for _, callback in ipairs(_inputEndedCallbacks) do
         local ok, err = pcall(callback, inputObject, gameProcessedEvent)
         if not ok then
@@ -175,7 +195,11 @@ local function OnInputEnded(inputObject: any, gameProcessedEvent: boolean): ()
     end
 end
 
+--[[
+    Handle input changed event
+]]
 local function OnInputChanged(inputObject: any, gameProcessedEvent: boolean): ()
+    -- Dispatch to all registered callbacks
     for _, callback in ipairs(_inputChangedCallbacks) do
         local ok, err = pcall(callback, inputObject, gameProcessedEvent)
         if not ok then
@@ -184,6 +208,10 @@ local function OnInputChanged(inputObject: any, gameProcessedEvent: boolean): ()
     end
 end
 
+--[[
+    Register a callback for InputBegan events
+    Returns a disconnect function
+]]
 function InputHandler.OnInputBegan(callback: InputBeganCallback): () -> ()
     table.insert(_inputBeganCallbacks, callback)
     local index = #_inputBeganCallbacks
@@ -193,6 +221,10 @@ function InputHandler.OnInputBegan(callback: InputBeganCallback): () -> ()
     end
 end
 
+--[[
+    Register a callback for InputEnded events
+    Returns a disconnect function
+]]
 function InputHandler.OnInputEnded(callback: InputEndedCallback): () -> ()
     table.insert(_inputEndedCallbacks, callback)
     local index = #_inputEndedCallbacks
@@ -202,6 +234,10 @@ function InputHandler.OnInputEnded(callback: InputEndedCallback): () -> ()
     end
 end
 
+--[[
+    Register a callback for InputChanged events
+    Returns a disconnect function
+]]
 function InputHandler.OnInputChanged(callback: InputChangedCallback): () -> ()
     table.insert(_inputChangedCallbacks, callback)
     local index = #_inputChangedCallbacks
@@ -211,8 +247,13 @@ function InputHandler.OnInputChanged(callback: InputChangedCallback): () -> ()
     end
 end
 
+--[[
+    Start the input handler
+    Connects to UserInputService events
+]]
 function InputHandler.Start(): ()
     if _isRunning then
+        print("InputHandler is already running")
         return
     end
 
@@ -222,6 +263,10 @@ function InputHandler.Start(): ()
     _inputChangedConnection = (UserInputService.InputChanged).Connect(OnInputChanged)
 end
 
+--[[
+    Stop the input handler
+    Disconnects from UserInputService events
+]]
 function InputHandler.Stop(): ()
     if not _isRunning then
         return
@@ -244,11 +289,16 @@ function InputHandler.Stop(): ()
         _inputChangedConnection = nil
     end
 
+    -- Reset input state
     InputHandler.ResetInputState()
 end
 
+--[[
+    Check if the handler is running
+]]
 function InputHandler.IsRunning(): boolean
     return _isRunning
 end
 
+-- Return the module
 return InputHandler

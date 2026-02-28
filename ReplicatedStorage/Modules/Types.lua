@@ -85,19 +85,4 @@ export type CameraConfig = {
     maxLookDown: number,
 }
 
-export type MovementConfig = {
-    walkSpeed: number,
-    sprintSpeed: number,
-    footstepCooldown: number,
-    footstepVolume: number,
-}
-
-export type MovementState = {
-    velocity: any,           -- Vector3
-    isMoving: boolean,
-    isSprinting: boolean,
-    moveDirection: any,    -- Vector3 (local space)
-    worldDirection: any,   -- Vector3 (world space)
-}
-
 return {}

@@ -17,8 +17,71 @@ function Tests.runAll(): (number, number)
     
     -- Run Types module tests
     print("-- Running Types Tests --")
-    local typesTest = require("./tests/unit/Types.spec")
+    local typesTest = require("./unit/Types.spec")
     local passed, failed = typesTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run PowerConfig module tests
+    print("-- Running PowerConfig Tests --")
+    local powerConfigTest = require("./unit/PowerConfig.spec")
+    passed, failed = powerConfigTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run RemoteEvents tests
+    print("-- Running RemoteEvents Tests --")
+    local remoteEventsTest = require("./unit/RemoteEvents.spec")
+    passed, failed = remoteEventsTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run PowerManager tests
+    print("-- Running PowerManager Tests --")
+    local powerManagerTest = require("./unit/PowerManager.spec")
+    passed, failed = powerManagerTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run PowerManager Light States tests
+    print("-- Running PowerManager Light States Tests --")
+    local lightStatesTest = require("./unit/PowerManager.LightStates.spec")
+    passed, failed = lightStatesTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run LightInteraction tests
+    print("-- Running LightInteraction Tests --")
+    local lightInteractionTest = require("./unit/LightInteraction.spec")
+    passed, failed = lightInteractionTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run InputHandler tests
+    print("-- Running InputHandler Tests --")
+    local inputHandlerTest = require("./unit/InputHandler.spec")
+    passed, failed = inputHandlerTest()
+    totalPassed += passed
+    totalFailed += failed
+    
+    print()
+    
+    -- Run ServerToggleHandler tests
+    print("-- Running ServerToggleHandler Tests --")
+    local serverToggleTest = require("./unit/ServerToggleHandler.spec")
+    passed, failed = serverToggleTest()
     totalPassed += passed
     totalFailed += failed
     

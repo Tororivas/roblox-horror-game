@@ -1,0 +1,45 @@
+
+## 2026-02-27 - US-006: Implement client light toggle interaction
+- Created StarterPlayerScripts/LightInteraction.client.lua with:
+  - 'E' key detection via UserInputService.InputBegan
+  - Proximity check (10 studs) to find nearest light switch
+  - Raycast check for more precise targeting from camera
+  - LightToggled RemoteEvent to send toggle requests to server with lightId
+  - Light switches refreshed from Workspace.Lights folder
+  - Support for switches added/removed dynamically
+- Key implementation details:
+  - INTERACTION_DISTANCE = 10 studs for proximity detection
+  - RAYCAST_DISTANCE = 10 studs for raycast-based interaction
+  - Toggle request only sent if near a light switch (proximity or raycast)
+  - Uses colon syntax (:) for all service method calls
+  - Handles gameProcessedEvent to avoid triggering during chat/ui input
+- Created tests/unit/LightInteraction.spec.lua with 13 comprehensive tests:
+  * Module structure validation (all required functions exist)
+  * RefreshLightSwitches populates light switches from Lights folder
+  * FindNearestLightSwitch returns nearest in range (5 studs)
+  * FindNearestLightSwitch returns nil when out of range (15+ studs)
+  * E key input triggers TryToggleLightSwitch
+  * Non-E key input (W) does not trigger toggle
+  * gameProcessedEvent filters input (no trigger when game processed)
+  * FireServer called once with correct lightId when near switch
+  * FireServer not called when no switch nearby
+  * Proximity check requires switch within 10 studs
+  * Multiple switches - finds closest one (3 studs vs 6 vs 9)
+  * RaycastForLightSwitch returns instance when LightId exists
+  * RaycastForLightSwitch returns nil when no LightId attribute
+- All 13 tests pass (13 passed, 0 failed)
+- Typecheck passes with expected warnings for Roblox types
+- Branch: feature/power-system
+- Commit: e5043a0
+- **Learnings:**
+  - Client interaction scripts go in StarterPlayerScripts and run on each client
+  - Colon (:) vs dot (.) method calls matter - colon passes self implicitly
+  - Mock implementations need _self parameter for dot-style definitions
+  - FireServer with colon passes self as first arg, then actual args
+  - KeyCode comparison should use table equality or string comparison (Name field)
+  - Proximity detection: compare Magnitude of vector difference
+  - Raycast returns nil by default in mocks - can override per test
+  - Lights should be placed in Workspace.Lights with LightId attribute
+  - Can support multiple interaction methods (proximity + raycast) layered together
+
+---
