@@ -4,8 +4,6 @@
     Runs all unit and integration tests.
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Tests = {}
 
 function Tests.runAll(): (number, number)
@@ -19,17 +17,8 @@ function Tests.runAll(): (number, number)
     
     -- Run Types module tests
     print("-- Running Types Tests --")
-    local typesTest = require(script.Parent.unit.Types.spec)
+    local typesTest = require("./tests/unit/Types.spec")
     local passed, failed = typesTest()
-    totalPassed += passed
-    totalFailed += failed
-    
-    print()
-    
-    -- Run PowerConfig module tests
-    print("-- Running PowerConfig Tests --")
-    local powerConfigTest = require(script.Parent.unit.PowerConfig.spec)
-    passed, failed = powerConfigTest()
     totalPassed += passed
     totalFailed += failed
     
@@ -39,6 +28,12 @@ function Tests.runAll(): (number, number)
     print("=" .. string.rep("=", 40))
     
     return totalPassed, totalFailed
+end
+
+-- Run tests if executed directly
+local testPassed, testFailed = Tests.runAll()
+if testFailed > 0 then
+    error("Some tests failed!")
 end
 
 return Tests

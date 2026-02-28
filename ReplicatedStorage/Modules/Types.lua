@@ -5,6 +5,14 @@
     All modules should reference types from here for consistency.
 ]]
 
+-- Forward declare Roblox types for typechecking
+local _Vector2: any = nil
+local _Vector3: any = nil
+local _Color3: any = nil
+local _BasePart: any = nil
+local _Model: any = nil
+local _Player: any = nil
+
 export type InputState = {
     -- Movement
     moveForward: boolean,
@@ -17,7 +25,7 @@ export type InputState = {
     interacting: boolean,
     
     -- Camera
-    lookDelta: Vector2,
+    lookDelta: any, -- Vector2 in Roblox
     
     -- Timestamps for cooldown tracking
     lastInteractTime: number,
@@ -46,11 +54,11 @@ export type PlayerState = {
 
 export type Interactable = {
     -- Instance reference
-    instance: BasePart | Model,
+    instance: any, -- BasePart | Model in Roblox
     
     -- Configuration
     interactionDistance: number,
-    highlightColor: Color3,
+    highlightColor: any, -- Color3 in Roblox
     interactionPrompt: string,
     
     -- State
@@ -58,7 +66,7 @@ export type Interactable = {
     isHighlighted: boolean,
     
     -- Callbacks
-    onInteract: (player: Player) -> (),
+    onInteract: (player: any) -> (), -- Player in Roblox
     onHighlight: () -> (),
     onUnhighlight: () -> (),
 }
