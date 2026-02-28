@@ -1,113 +1,45 @@
-# Progress Log
-Run: 44e1dcfb-7ced-4d6f-8c8f-6c1fe302bb03
-Task: Roblox Horror Game - Phase 1C: Power System
-Started: 2026-02-27
 
-## Codebase Patterns
-- Roblox Luau project structure with ReplicatedStorage/Modules for shared modules
-- Test files in tests/unit/*.spec.lua pattern
-- Test runner at tests/runTests.lua that aggregates all tests
-- Strict mode enabled with --!strict directive
-- Luau type definitions in Types.lua module
-- Test pattern: each spec file exports a runTests() function returning (passed, failed)
-- Using pcall for test isolation and assert for validation
-- **Rojo instance definitions:** Use .meta.json files to define Roblox instances (e.g., RemoteEvents)
-- **Project structure:** default.project.json maps file paths to Roblox services
-- **Luau syntax:** Add semicolons after function calls when followed by assert to avoid ambiguous syntax errors
-
----
-
-## 2026-02-27 - US-001: Create PowerConfig module with constants
-- Created ReplicatedStorage/Modules/PowerConfig.lua with:
-  - POWER_START = 100 (initial power percentage)
-  - POWER_COST_PER_TOGGLE = 10 (power consumed per light toggle)
-  - MIN_POWER = 0 (minimum power threshold)
-- Created tests/unit/PowerConfig.spec.lua with 6 comprehensive tests
-- Updated tests/runTests.lua to include PowerConfig tests
+## 2026-02-27 - US-006: Implement client light toggle interaction
+- Created StarterPlayerScripts/LightInteraction.client.lua with:
+  - 'E' key detection via UserInputService.InputBegan
+  - Proximity check (10 studs) to find nearest light switch
+  - Raycast check for more precise targeting from camera
+  - LightToggled RemoteEvent to send toggle requests to server with lightId
+  - Light switches refreshed from Workspace.Lights folder
+  - Support for switches added/removed dynamically
+- Key implementation details:
+  - INTERACTION_DISTANCE = 10 studs for proximity detection
+  - RAYCAST_DISTANCE = 10 studs for raycast-based interaction
+  - Toggle request only sent if near a light switch (proximity or raycast)
+  - Uses colon syntax (:) for all service method calls
+  - Handles gameProcessedEvent to avoid triggering during chat/ui input
+- Created tests/unit/LightInteraction.spec.lua with 13 comprehensive tests:
+  * Module structure validation (all required functions exist)
+  * RefreshLightSwitches populates light switches from Lights folder
+  * FindNearestLightSwitch returns nearest in range (5 studs)
+  * FindNearestLightSwitch returns nil when out of range (15+ studs)
+  * E key input triggers TryToggleLightSwitch
+  * Non-E key input (W) does not trigger toggle
+  * gameProcessedEvent filters input (no trigger when game processed)
+  * FireServer called once with correct lightId when near switch
+  * FireServer not called when no switch nearby
+  * Proximity check requires switch within 10 studs
+  * Multiple switches - finds closest one (3 studs vs 6 vs 9)
+  * RaycastForLightSwitch returns instance when LightId exists
+  * RaycastForLightSwitch returns nil when no LightId attribute
+- All 13 tests pass (13 passed, 0 failed)
+- Typecheck passes with expected warnings for Roblox types
 - Branch: feature/power-system
-- Commit: 7ad3c39
+- Commit: e5043a0
 - **Learnings:**
-  - Project uses strict Luau mode with --!strict directive
-  - Tests follow the pattern of exporting a runTests() function
-  - globalTypes.d.lua provides Roblox API type definitions
-  - .luaurc configures strict mode and lint settings
-
----
-
-## 2026-02-27 - US-002: Create PowerChanged and LightToggled RemoteEvents
-- Created ReplicatedStorage/Events/ folder structure with init.meta.json
-- Created PowerChanged.meta.json (RemoteEvent instance definition)
-- Created LightToggled.meta.json (RemoteEvent instance definition)
-- Updated default.project.json to include Events folder path
-- Created tests/unit/RemoteEvents.spec.lua with 8 comprehensive tests:
-  * PowerChanged and LightToggled RemoteEvent existence
-  * OnServerEvent connectability for both events
-  * OnClientEvent connectability for both events
-  * Proper Name properties validation
-  * Multiple connection support verification
-- Updated tests/runTests.lua to include RemoteEvents tests
-- All tests pass (8 passed, 0 failed)
-- Typecheck passes with no errors
-- Branch: feature/power-system
-- Commit: a62bbf6
-- **Learnings:**
-  - Rojo uses .meta.json files to define Roblox instances like RemoteEvents
-  - Luau requires semicolons after function calls when followed by assert
-  - Mock implementations need proper type annotations for strict mode
-  - JSON files in project need to be excluded from luau-analyze
-
----
-
-## 2026-02-27 - US-003/US-004: Create PowerManager server script with power state and consumption
-- Created ServerScriptService/Systems/PowerManager.lua with core functionality:
-  - GetPower() - returns current power value
-  - SetPower(newPower) - updates power with clamping
-  - HasPower() - checks if power > MIN_POWER
-  - DeductPower(amount) - deducts power and fires PowerChanged event
-  - Reset() - resets power to start value
-- Created ServerScriptService/Systems/PowerManager.server.lua init script
-- Created tests/unit/PowerManager.spec.lua with 14 tests
-- All tests pass (14 passed, 0 failed)
-- Typecheck passes
-- Branch: feature/power-system
-- Commit: See branch history
-
----
-
-## 2026-02-27 - US-005: Track light states and handle power depletion
-- Updated ServerScriptService/Systems/PowerManager.lua with:
-  - lightStates table to track lightId -> isOn mapping
-  - GetLightState(lightId) - returns current light state or nil
-  - SetLightState(lightId, isOn) - sets light on/off state
-  - ToggleLight(lightId) - toggles light (fails if power = 0 for turning on)
-  - GetAllLightStates() - returns copy of all light states
-  - Reset() now clears light states table too
-- HasPower() already existed - returns true if power > 0, false when power = 0
-- ToggleLight respects power state:
-  - Turning on: requires power, consumes POWER_COST_PER_TOGGLE
-  - Turning off: always allowed (power doesn't increase)
-  - Fails gracefully when power = 0, preserving existing light states
-- Created tests/unit/PowerManager.LightStates.spec.lua with 14 tests:
-  * lightStates table existence verification
-  * GetLightState returns nil for untracked, true/false for tracked lights
-  * SetLightState updates state correctly
-  * HasPower returns true when power > 0, false when power = 0
-  * Light states persist when power depletes to 0
-  * GetAllLightStates returns all tracked lights
-  * ToggleLight succeeds with power available
-  * ToggleLight fails when power = 0
-  * Can turn off lights even when power = 0
-  * ToggleLight consumes power correctly
-  * LightToggled event fires on successful toggle
-- All 14 tests pass (14 passed, 0 failed)
-- Typecheck passes with no errors
-- Branch: feature/power-system
-- Commit: feat: US-005 - Track light states and handle power depletion
-- **Learnings:**
-  - Light states should persist when power hits 0 (existing lights stay in their state)
-  - ToggleLight needs to distinguish between "turning on" and "turning off"
-  - Turning off should always be allowed (doesn't affect power)
-  - Turning on should check HasPower() and consume power
-  - The LightToggled event should fire on successful toggle for client synchronization
+  - Client interaction scripts go in StarterPlayerScripts and run on each client
+  - Colon (:) vs dot (.) method calls matter - colon passes self implicitly
+  - Mock implementations need _self parameter for dot-style definitions
+  - FireServer with colon passes self as first arg, then actual args
+  - KeyCode comparison should use table equality or string comparison (Name field)
+  - Proximity detection: compare Magnitude of vector difference
+  - Raycast returns nil by default in mocks - can override per test
+  - Lights should be placed in Workspace.Lights with LightId attribute
+  - Can support multiple interaction methods (proximity + raycast) layered together
 
 ---
